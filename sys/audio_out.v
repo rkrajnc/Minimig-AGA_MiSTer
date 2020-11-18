@@ -272,6 +272,9 @@ module aud_mix_top
 );
 
 reg signed [16:0] a1, a2, a3, a4;
+reg [15:0] out_tmp;
+reg [15:0] out_prev;
+
 always @(posedge clk) if (ce) begin
 
 	a1 <= {core_audio[15],core_audio};
@@ -290,7 +293,16 @@ always @(posedge clk) if (ce) begin
 	else a4 <= a3 >>> att[3:0];
 
 	//clamping
-	out <= ^a4[16:15] ? {a4[16],{15{a4[15]}}} : a4[15:0];
+	out_tmp <= ^a4[16:15] ? {a4[16],{15{a4[15]}}} : a4[15:0];
+	
+	// insert noise
+	if (~|out_tmp && ~|out_prev && (~|out || &out))
+		out <= #1 ~out;
+	else
+		out <= #1 out_tmp;
+
+	out_prev <= #1 out_tmp;
 end
+
 
 endmodule
